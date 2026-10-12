@@ -142,35 +142,43 @@ function update() {
   const slope = getHillSlope(bird.x);
 
   if (bird.y + bird.radius >= groundY) {
-    bird.y = groundY - bird.radius;
     bird.onGround = true;
 
-    // Física de declive
-    // Se estiver mergulhando em descida (slope > 0), ganha aceleração máxima
+    // Se estiver mergulhando: cola no chão e ganha aceleração nas descidas
     if (isDiving) {
-      if (slope > 0.05) {
-        bird.vx += slope * 1.1; // Impulso perfeito!
-        if (bird.vx > 18) bird.vx = 18;
+      bird.y = groundY - bird.radius;
+      if (slope > 0) {
+        // Descida: aceleração forte baseada na inclinação
+        bird.vx += slope * 1.5 + 0.3;
+        if (bird.vx > 22) bird.vx = 22;
         perfectSlides++;
-        if (perfectSlides > 2 && feverMultiplier === 1) {
+        if (perfectSlides > 3 && feverMultiplier === 1) {
           feverMultiplier = 2;
           playSound(sndFever);
         }
       } else {
-        // Bateu na subida
-        bird.vx *= 0.94;
+        // Subida mergulhando: perde velocidade por bater na subida
+        bird.vx *= 0.96;
         perfectSlides = 0;
         feverMultiplier = 1;
       }
+      bird.vy = slope * bird.vx;
     } else {
-      // Soltou o toque na rampa de subida -> Salta alto!
-      if (slope < -0.1 && bird.vx > 6) {
-        bird.vy = slope * bird.vx * 0.95; // Converte velocidade horizontal em vertical
+      // NÃO ESTÁ MERGULHANDO: se atingir uma rampa ascendente ou tiver velocidade, é lançado aos ares!
+      if (slope < 0 || bird.vy < 0) {
+        // Lançamento balístico nos vales/subidas
+        const launchPower = Math.abs(slope) * bird.vx * 1.6;
+        bird.vy = -Math.max(launchPower, bird.vx * 0.7);
+        bird.y = groundY - bird.radius - 4; // Descola imediatamente do chão
+        bird.onGround = false;
         playSound(sndPlop);
+      } else {
+        // Está deslizando suavemente no plano
+        bird.y = groundY - bird.radius;
+        bird.vy = slope * bird.vx;
       }
     }
 
-    // Alinhamento do ângulo
     bird.rotation = Math.atan(slope);
   } else {
     bird.onGround = false;
@@ -224,11 +232,12 @@ function render() {
   ctx.fillRect(0, 0, width, height);
 
   // Câmera segue o pássaro
-  const camX = bird.x - width * 0.3;
-  const camY = bird.y - height * 0.5;
+  const camX = bird.x - width * 0.25;
+  const targetCamY = bird.y - height * 0.65;
+  const camY = Math.min(targetCamY, height * 0.2);
 
   ctx.save();
-  ctx.translate(-camX, -camY * 0.4);
+  ctx.translate(-camX, -camY * 0.5);
 
   // Renderizar Sol
   const sunX = camX + width * 0.8;
@@ -352,9 +361,9 @@ if (btnRestart) {
 function startGame() {
   initAudio();
   bird.x = 150;
-  bird.y = 300;
-  bird.vx = 4;
-  bird.vy = 0;
+  bird.y = 200;
+  bird.vx = 7;
+  bird.vy = -5;
   score = 0;
   island = 1;
   dayTime = 100;
