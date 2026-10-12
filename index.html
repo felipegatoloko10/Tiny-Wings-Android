@@ -113,6 +113,9 @@
       cursor: pointer;
       box-shadow: 0 6px 16px rgba(255,152,0,0.5);
       transition: transform 0.1s;
+      z-index: 9999;
+      pointer-events: auto;
+      touch-action: manipulation;
     }
     .btn-play:active {
       transform: scale(0.95);
@@ -142,13 +145,13 @@
     <p class="instructions">
       Toque e segure na tela para <b>mergulhar nas descidas</b> e solte nas subidas para <b>voar alto</b> antes do sol se pôr!
     </p>
-    <button class="btn-play" id="btn-start">JOGAR AGORA</button>
+    <button class="btn-play" id="btn-start" onclick="handleStartClick(event)">JOGAR AGORA</button>
   </div>
 
   <div id="game-over-screen" style="display: none;">
     <h1 class="game-title">Anoiteceu! 🌙</h1>
     <p class="instructions" id="final-stats">Você chegou à Ilha 1 com 0 pontos!</p>
-    <button class="btn-play" id="btn-restart">JOGAR NOVAMENTE</button>
+    <button class="btn-play" id="btn-restart" onclick="handleRestartClick(event)">JOGAR NOVAMENTE</button>
   </div>
 
   <script src="game.js"></script>

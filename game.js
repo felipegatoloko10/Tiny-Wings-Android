@@ -12,11 +12,28 @@ window.addEventListener('resize', resize);
 resize();
 
 // Áudios
-const sndBgm = new Audio('audio/bgm.mp3');
-sndBgm.loop = true;
-const sndCoin = new Audio('audio/coin.mp3');
-const sndFever = new Audio('audio/feverBoom.mp3');
-const sndPlop = new Audio('audio/chargePlop.mp3');
+let sndBgm, sndCoin, sndFever, sndPlop;
+
+function initAudio() {
+  try {
+    sndBgm = new Audio('audio/bgm.mp3');
+    sndBgm.loop = true;
+    sndCoin = new Audio('audio/coin.mp3');
+    sndFever = new Audio('audio/feverBoom.mp3');
+    sndPlop = new Audio('audio/chargePlop.mp3');
+  } catch(e) {
+    console.warn("Audio init error:", e);
+  }
+}
+
+function playSound(snd) {
+  if (!snd) return;
+  try {
+    snd.currentTime = 0;
+    const p = snd.play();
+    if (p && p.catch) p.catch(() => {});
+  } catch(e) {}
+}
 
 // Parâmetros do Jogo & Física
 const GRAVITY = 0.28;
@@ -81,10 +98,21 @@ function setDive(state) {
   isDiving = state;
 }
 
-window.addEventListener('mousedown', () => setDive(true));
+window.addEventListener('mousedown', (e) => {
+  if (e.target && (e.target.id === 'btn-start' || e.target.id === 'btn-restart')) return;
+  setDive(true);
+});
 window.addEventListener('mouseup', () => setDive(false));
-window.addEventListener('touchstart', (e) => { e.preventDefault(); setDive(true); }, { passive: false });
-window.addEventListener('touchend', (e) => { e.preventDefault(); setDive(false); }, { passive: false });
+window.addEventListener('touchstart', (e) => {
+  if (e.target && (e.target.id === 'btn-start' || e.target.id === 'btn-restart')) return;
+  e.preventDefault();
+  setDive(true);
+}, { passive: false });
+window.addEventListener('touchend', (e) => {
+  if (e.target && (e.target.id === 'btn-start' || e.target.id === 'btn-restart')) return;
+  e.preventDefault();
+  setDive(false);
+}, { passive: false });
 window.addEventListener('keydown', (e) => { if (e.code === 'Space') setDive(true); });
 window.addEventListener('keyup', (e) => { if (e.code === 'Space') setDive(false); });
 
@@ -126,7 +154,7 @@ function update() {
         perfectSlides++;
         if (perfectSlides > 2 && feverMultiplier === 1) {
           feverMultiplier = 2;
-          try { sndFever.play(); } catch(e){}
+          playSound(sndFever);
         }
       } else {
         // Bateu na subida
@@ -138,7 +166,7 @@ function update() {
       // Soltou o toque na rampa de subida -> Salta alto!
       if (slope < -0.1 && bird.vx > 6) {
         bird.vy = slope * bird.vx * 0.95; // Converte velocidade horizontal em vertical
-        try { sndPlop.play(); } catch(e){}
+        playSound(sndPlop);
       }
     }
 
@@ -172,7 +200,7 @@ function update() {
     if (!c.collected && Math.hypot(bird.x - c.x, bird.y - c.y) < bird.radius + c.radius) {
       c.collected = true;
       score += 50 * feverMultiplier;
-      try { sndCoin.cloneNode().play(); } catch(e){}
+      playSound(sndCoin);
     }
   }
 }
@@ -289,17 +317,40 @@ function gameLoop() {
 }
 
 // Iniciar e Reiniciar
-document.getElementById('btn-start').addEventListener('click', () => {
-  document.getElementById('start-screen').style.display = 'none';
+window.handleStartClick = function(e) {
+  if (e) {
+    if (e.stopPropagation) e.stopPropagation();
+    if (e.preventDefault) e.preventDefault();
+  }
+  const startEl = document.getElementById('start-screen');
+  if (startEl) startEl.style.display = 'none';
   startGame();
-});
+};
 
-document.getElementById('btn-restart').addEventListener('click', () => {
-  document.getElementById('game-over-screen').style.display = 'none';
+window.handleRestartClick = function(e) {
+  if (e) {
+    if (e.stopPropagation) e.stopPropagation();
+    if (e.preventDefault) e.preventDefault();
+  }
+  const overEl = document.getElementById('game-over-screen');
+  if (overEl) overEl.style.display = 'none';
   startGame();
-});
+};
+
+const btnStart = document.getElementById('btn-start');
+if (btnStart) {
+  btnStart.addEventListener('click', handleStartClick);
+  btnStart.addEventListener('touchend', handleStartClick);
+}
+
+const btnRestart = document.getElementById('btn-restart');
+if (btnRestart) {
+  btnRestart.addEventListener('click', handleRestartClick);
+  btnRestart.addEventListener('touchend', handleRestartClick);
+}
 
 function startGame() {
+  initAudio();
   bird.x = 150;
   bird.y = 300;
   bird.vx = 4;
@@ -311,10 +362,13 @@ function startGame() {
   perfectSlides = 0;
   spawnCoins();
   gameRunning = true;
-  try {
-    sndBgm.currentTime = 0;
-    sndBgm.play();
-  } catch(e){}
+  if (sndBgm) {
+    try {
+      sndBgm.currentTime = 0;
+      const p = sndBgm.play();
+      if (p && p.catch) p.catch(() => {});
+    } catch(e){}
+  }
 }
 
 function gameOver() {
