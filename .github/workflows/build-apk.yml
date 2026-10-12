@@ -1,0 +1,54 @@
+name: Build Android APK & Release
+
+on:
+  push:
+    branches: [ "main" ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v3
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+
+      - name: Setup Gradle
+        uses: gradle/gradle-build-action@v2
+        with:
+          gradle-version: 8.2
+
+      - name: Generate Gradle Wrapper
+        run: |
+          cd android
+          gradle wrapper --gradle-version 8.2
+
+      - name: Build Debug APK
+        run: |
+          cd android
+          chmod +x gradlew
+          ./gradlew assembleDebug --stacktrace
+
+      - name: Upload APK Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: TinyWings-APK
+          path: android/app/build/outputs/apk/debug/app-debug.apk
+
+      - name: Copy APK to release folder
+        run: |
+          mkdir -p release
+          cp android/app/build/outputs/apk/debug/app-debug.apk release/TinyWings.apk
+
+      - name: Commit & Push APK back to repo
+        run: |
+          git config --global user.name "Jarvis CI"
+          git config --global user.email "jarvis@nousresearch.com"
+          git add release/TinyWings.apk
+          git commit -m "Auto-build TinyWings.apk [skip ci]" || echo "No changes to commit"
+          git push

@@ -1,0 +1,8 @@
+{
+  "name": "tiny-wings-clone",
+  "version": "1.0.0",
+  "description": "Tiny Wings 2.4.3 HTML5 & Android Clone",
+  "scripts": {
+    "start": "serve ."
+  }
+}
